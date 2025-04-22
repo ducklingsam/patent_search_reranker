@@ -5,6 +5,7 @@ from .embedder import train_embedder
 from .reranker import PatentReranker
 from .evaluate import evaluate_manual
 from .experiments import compare_methods, ablation_study, hyperparameter_tuning
+from .explainability import analyze_explainability
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from src.utils import download_model
@@ -39,6 +40,11 @@ def main():
     exp.add_argument('--manual', required=True)
     exp.add_argument('--model', required=True)
 
+    out = sub.add_parser('explain')
+    out.add_argument('--manual', required=True)
+    out.add_argument('--model', required=True)
+    out.add_argument('--out', required=True)
+
     args = parser.parse_args()
 
     if args.cmd == 'embed':
@@ -64,6 +70,9 @@ def main():
                     print(f"\n✅ {task_name} completed.")
                 except Exception as e:
                     print(f"\n❌ {task_name} failed with error: {e}")
+
+    elif args.cmd == 'explain':
+        analyze_explainability(args.manual, args.model, args.out)
     else:
         parser.print_help()
 

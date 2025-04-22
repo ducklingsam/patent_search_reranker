@@ -40,6 +40,11 @@ python -m src.main eval --manual data/manual_qrels.csv --model models/patent_rer
 python -m src.main experiment --gold data/gold_labels.csv --manual data/manual_qrels.csv --model models/patent_reranker.txt
 ```
 
+### 5. SHAP LIME
+```bash
+python -m src.main explain --manual data/manual_qrels.csv --model  models/patent_reranker.txt --out results
+```
+
 ## Структура данных
 - `data/gold_labels.csv`: LLM-сгенерированные positive/negative для тренировки
 - `data/manual_qrels.csv`: вручную размеченная выборка для финального теста
