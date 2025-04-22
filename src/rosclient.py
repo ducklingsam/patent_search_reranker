@@ -28,7 +28,7 @@ class RosPatentClient:
             "Content-Type": "application/json"
         })
 
-    def search(self, query: str, limit: int = 10, offset: int = 0, datasets: list = None, tries: int = 3,
+    def search(self, query: str, limit: int = 10, offset: int = 0, datasets: list = None, tries: int = 5,
                filter: dict = None) -> list:
         """Выполняет поиск по запросу.
         :param query: Строка запроса.
@@ -62,7 +62,7 @@ class RosPatentClient:
                 time.sleep(1)
         resp.raise_for_status()
 
-    def get_document(self, patent_id: str, tries: int = 3) -> dict:
+    def get_document(self, patent_id: str, tries: int = 5) -> dict:
         """
         Fetches the document details of a given patent from a remote API.
 
@@ -95,7 +95,7 @@ class RosPatentClient:
         resp.raise_for_status()
 
 
-    def search_raw(self, payload: dict, tries: int = 3):
+    def search_raw(self, payload: dict, tries: int = 5):
         for try_ in range(tries):
             try:
                 resp = self.session.post(f"{self.BASE_URL}/search", json=payload)
