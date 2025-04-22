@@ -6,7 +6,7 @@ from .reranker import PatentReranker
 from .evaluate import evaluate_manual
 from .experiments import compare_methods, ablation_study, hyperparameter_tuning
 
-from utils import download_model
+from src.utils import download_model
 
 
 def main():

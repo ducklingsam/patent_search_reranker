@@ -18,11 +18,9 @@ _query_ipc_cache = {}
 
 
 def fetch_bm25_score(query: str, patent_id: str) -> float:
-    url = f"{RosPatentClient.BASE_URL}/search"
-    payload = {"q": query, "limit": 1, "filter": {"id": patent_id}, "datasets": ["cis"]}
-    resp = client.session.post(url, json=payload)
-    if resp.status_code == 200 and resp.json().get('hits'):
-        return float(resp.json()['hits'][0].get('similarity_norm', 0.0))
+    resp = client.search(query, limit=1, filter={"id": patent_id})
+    if resp:
+        return float(resp[0].get('similarity_norm', 0.0))
     return 0.0
 
 

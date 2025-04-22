@@ -28,7 +28,8 @@ class RosPatentClient:
             "Content-Type": "application/json"
         })
 
-    def search(self, query: str, limit: int = 10, offset: int = 0, datasets: list = None, tries: int = 3) -> list:
+    def search(self, query: str, limit: int = 10, offset: int = 0, datasets: list = None, tries: int = 3,
+               filter: dict = None) -> list:
         """Выполняет поиск по запросу.
         :param query: Строка запроса.
         :param limit: Максимальное количество результатов (по умолчанию 10).
@@ -47,8 +48,10 @@ class RosPatentClient:
                     "limit": limit,
                     "offset": offset,
                     "datasets": datasets or ["ru_till_1994","ru_since_1994","cis","dsgn_ru","ap","cn","ch","au","gb","kr",
-                                             "ca","at","jp","ep","de","fr","pct","us","dsgn_kr","dsgn_cn","dsgn_jp","others"]
+                                             "ca","at","jp","ep","de","fr","pct","us","dsgn_kr","dsgn_cn","dsgn_jp","others"],
                 }
+                if filter is not None:
+                    payload["filter"] = filter
                 resp = self.session.post(f"{self.BASE_URL}/search", json=payload)
                 resp.raise_for_status()
                 logger.info(f"Successfully searched for {query}")
@@ -90,3 +93,16 @@ class RosPatentClient:
                 logger.warning(f'Error while getting document {patent_id}: {e}. Retrying {try_ + 1}/{tries} in 1 sec')
                 time.sleep(1)
         resp.raise_for_status()
+
+
+    def search_raw(self, payload: dict, tries: int = 3):
+        for try_ in range(tries):
+            try:
+                resp = self.session.post(f"{self.BASE_URL}/search", json=payload)
+                resp.raise_for_status()
+                logger.info(f"Successfully searched for {payload}")
+                data = resp.json()
+                return data
+            except Exception as e:
+                logger.warning(f'Error while searching: {e}. Retrying {try_ + 1}/{tries} in 1 sec')
+                time.sleep(1)
