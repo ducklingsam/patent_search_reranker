@@ -84,8 +84,8 @@ class RosPatentClient:
             Exception: If all retry attempts for the GET request fail.
         """
         for try_ in range(tries):
-            resp = self.session.get(f"{self.BASE_URL}/docs/{patent_id}")
             try:
+                resp = self.session.get(f"{self.BASE_URL}/docs/{patent_id}")
                 resp.raise_for_status()
                 logger.info(f"Fetched document {patent_id}")
                 return resp.json()
