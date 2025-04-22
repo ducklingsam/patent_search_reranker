@@ -1,18 +1,16 @@
 import shap
 import os
 import pandas as pd
+import matplotlib
 import matplotlib.pyplot as plt
 import json
-import torch
 from lime.lime_tabular import LimeTabularExplainer
 from concurrent.futures import ThreadPoolExecutor
-from loguru import logger
 from .reranker import PatentReranker
 from .features import extract_features
 from .rosclient import RosPatentClient
-from .utils import device
 
-logger.info(f"Using device: {device}")
+matplotlib.use('Agg')
 
 CACHE_FILE = "patent_cache.json"
 
@@ -29,14 +27,11 @@ def save_cache(cache):
         json.dump(cache, f)
 
 def explain_shap(model, X_sample, output_path='shap_summary.png'):
-    """SHAP: визуализация важности признаков с использованием MPS."""
-    model = model.to(device)
+    """SHAP: визуализация важности признаков."""
     explainer = shap.TreeExplainer(model)
 
     X_subset = X_sample.sample(n=min(5, len(X_sample)), random_state=42)
-    X_subset_tensor = torch.tensor(X_subset.values, dtype=torch.float32).to(device)
-
-    shap_values = explainer.shap_values(X_subset_tensor.cpu().numpy())
+    shap_values = explainer.shap_values(X_subset)
 
     shap.summary_plot(shap_values, X_subset, feature_names=X_subset.columns, show=False)
     plt.savefig(output_path, bbox_inches='tight', dpi=150)
@@ -73,7 +68,7 @@ def process_query(q, client, reranker, output_dir, cache):
         explain_lime(reranker.model, X, X.columns, instance, output_path=lime_path)
 
     except Exception as e:
-        logger.error(f"Error processing query '{q}': {e}")
+        print(f"Error processing query '{q}': {e}")
 
 def analyze_explainability(manual_csv, reranker_model_path, output_dir='explainability', max_workers=8):
     """Анализ интерпретируемости с распараллеливанием."""
@@ -92,4 +87,4 @@ def analyze_explainability(manual_csv, reranker_model_path, output_dir='explaina
         for q in queries:
             executor.submit(process_query, q, client, reranker, output_dir, cache)
 
-    logger.info(f"Explainability results saved in {output_dir}")
+    print(f"Explainability results saved in {output_dir}")
