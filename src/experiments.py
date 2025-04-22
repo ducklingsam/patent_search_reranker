@@ -158,7 +158,7 @@ def hyperparameter_tuning(gold_csv, output_path, param_grid=None):
             for q in df['query'].unique():
                 sub = df[df['query'] == q]
                 relevant = set(sub[sub['label'] == 1]['id'])
-                preds = reranker.predict(q, top_k=20)
+                preds, _ = reranker.predict(q, top_k=20)
                 ranked_ids = preds['id'].tolist()
                 metrics.append({
                     'query': q,

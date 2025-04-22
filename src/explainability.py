@@ -1,5 +1,5 @@
 import shap
-import numpy as np
+import os
 import pandas as pd
 import matplotlib.pyplot as plt
 from lime.lime_tabular import LimeTabularExplainer
@@ -27,7 +27,7 @@ def explain_lime(model, X_train, feature_names, instance, output_path='lime_expl
         feature_names=feature_names,
         mode='regression'
     )
-    exp = explainer.explain_instance(instance.values, model.predict, num_features=len(feature_names))
+    exp = explainer.explain_instance(instance.values, model.predict[0], num_features=len(feature_names))
     exp.save_to_file(output_path)
     return exp
 
