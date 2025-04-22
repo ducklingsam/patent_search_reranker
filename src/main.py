@@ -1,11 +1,22 @@
 import argparse
+import os
+from loguru import logger
 from .embedder import train_embedder
 from .reranker import PatentReranker
 from .evaluate import evaluate_manual
 from .experiments import compare_methods, ablation_study, hyperparameter_tuning
 
+from utils import download_model
+
 
 def main():
+    model_path = 'models/contrastive-rubert/model.safetensors'
+
+    if not os.path.isfile(model_path):
+        model_url = 'https://your-link.com/model.safetensors'
+        logger.info('No model.safetensors found in models/contrastive-rubert. Downloading it now...')
+        download_model(model_url, model_path)
+
     parser = argparse.ArgumentParser(description="Pipeline for Patent Search Re-ranker")
     sub = parser.add_subparsers(dest='cmd')
 
