@@ -1,5 +1,0 @@
-Features,Avg Precision@5,Avg MRR@20,Avg Recall@20,Avg NDCG@5
-"['bm25', 'dense_sim', 'ipc_sim']",0.54,0.95,1.0,1.0
-"['bm25', 'dense_sim']",0.54,0.95,1.0,1.0
-"['bm25', 'ipc_sim']",0.24,0.6333333333333334,1.0,0.7
-"['dense_sim', 'ipc_sim']",0.4,0.8,1.0,1.0
