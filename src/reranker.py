@@ -50,12 +50,16 @@ class PatentReranker:
         self.model = model
         return model
 
-    def predict(self, query: str, top_k: int = 10):
+    def predict(self, query: str, top_k: int = 10, features: list = None):
         if self.model is None:
             raise ValueError('Модель не загружена.')
         client = RosPatentClient()
         patents = client.search(query, limit=top_k)
         feats = extract_features(query, patents)
         df_feats = pd.DataFrame(feats)
-        df_feats['score'] = self.model.predict(df_feats[['bm25', 'dense_sim', 'ipc_sim']])
+
+        if features is None:
+            features = ['bm25', 'dense_sim', 'ipc_sim']
+
+        df_feats['score'] = self.model.predict(df_feats[features])
         return df_feats.sort_values('score', ascending=False), patents

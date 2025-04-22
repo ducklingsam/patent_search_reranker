@@ -84,7 +84,7 @@ def ablation_study(gold_csv, output_path, feature_sets=None):
         for q in df['query'].unique():
             sub = df[df['query'] == q]
             relevant = set(sub[sub['label'] == 1]['id'])
-            preds = reranker.predict(q, top_k=20)
+            preds, _ = reranker.predict(q, top_k=20, features=features)
             ranked_ids = preds['id'].tolist()
             metrics.append({
                 'query': q,
@@ -199,7 +199,7 @@ def compare_methods(manual_csv, reranker_model_path):
         feats = extract_features(q, patents)
 
         # Предложенный метод
-        preds = reranker.predict(q, top_k=20)
+        preds, _ = reranker.predict(q, top_k=20)
         ranked_ids = preds['id'].tolist()
         proposed_metrics = {
             'Method': 'Proposed',

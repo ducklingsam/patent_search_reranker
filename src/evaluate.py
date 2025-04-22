@@ -21,7 +21,7 @@ def evaluate_manual(manual_csv: str, reranker_model_path: str):
         test_df = df.iloc[test_idx]
         q = test_df['query'].iloc[0]
         relevant = set(test_df[test_df['label'] == 1]['id'])
-        preds = model.predict(q, top_k=20)
+        preds, _ = model.predict(q, top_k=20)
         ranked_ids = preds['id'].tolist()
 
         results.append({

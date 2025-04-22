@@ -37,7 +37,7 @@ python -m src.main eval --manual data/manual_qrels.csv --model models/patent_rer
 
 ### 4. Эксперименты
 ```bash
-python -m src.main experiment --gold data/gold_labels.csv --manual manual_qrels.csv --model models/patent_reranker.txt
+python -m src.main experiment --gold data/labeled_patents.csv --manual data/manual_qrels.csv --model models/patent_reranker.txt
 ```
 
 ## Структура данных
