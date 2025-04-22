@@ -6,12 +6,13 @@ import json
 import torch
 from lime.lime_tabular import LimeTabularExplainer
 from concurrent.futures import ThreadPoolExecutor
+from loguru import logger
 from .reranker import PatentReranker
 from .features import extract_features
 from .rosclient import RosPatentClient
 from .utils import device
 
-print(f"Using device: {device}")
+logger.info(f"Using device: {device}")
 
 CACHE_FILE = "patent_cache.json"
 
@@ -72,7 +73,7 @@ def process_query(q, client, reranker, output_dir, cache):
         explain_lime(reranker.model, X, X.columns, instance, output_path=lime_path)
 
     except Exception as e:
-        print(f"Error processing query '{q}': {e}")
+        logger.error(f"Error processing query '{q}': {e}")
 
 def analyze_explainability(manual_csv, reranker_model_path, output_dir='explainability', max_workers=8):
     """Анализ интерпретируемости с распараллеливанием."""
@@ -91,4 +92,4 @@ def analyze_explainability(manual_csv, reranker_model_path, output_dir='explaina
         for q in queries:
             executor.submit(process_query, q, client, reranker, output_dir, cache)
 
-    print(f"Explainability results saved in {output_dir}")
+    logger.info(f"Explainability results saved in {output_dir}")
