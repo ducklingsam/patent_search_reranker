@@ -5,6 +5,7 @@ from .embedder import train_embedder
 from .reranker import PatentReranker
 from .evaluate import evaluate_manual
 from .experiments import compare_methods, ablation_study, hyperparameter_tuning
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from src.utils import download_model
 
@@ -47,12 +48,22 @@ def main():
     elif args.cmd == 'eval':
         evaluate_manual(args.manual, args.model)
     elif args.cmd == 'experiment':
-        print("Running method comparison...")
-        compare_methods(args.manual, args.model)
-        print("\nRunning ablation study...")
-        ablation_study(args.gold, 'ablation_results.csv')
-        print("\nRunning hyperparameter tuning...")
-        hyperparameter_tuning(args.gold, 'hyperparam_results.csv')
+        print("Running all experiments in parallel...\n")
+
+        with ThreadPoolExecutor(max_workers=3) as executor:
+            futures = {
+                executor.submit(compare_methods, args.manual, args.model): 'Method Comparison',
+                executor.submit(ablation_study, args.gold, 'ablation_results.csv'): 'Ablation Study',
+                executor.submit(hyperparameter_tuning, args.gold, 'hyperparam_results.csv'): 'Hyperparameter Tuning'
+            }
+
+            for future in as_completed(futures):
+                task_name = futures[future]
+                try:
+                    future.result()
+                    print(f"\n✅ {task_name} completed.")
+                except Exception as e:
+                    print(f"\n❌ {task_name} failed with error: {e}")
     else:
         parser.print_help()
 

@@ -19,10 +19,11 @@ client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
 class ChatRequest(BaseModel):
     chat_id: str | None = None
     text: str | None = None
-    chat_history: list[dict] | None = None
+    chat_history: list[dict] | None = []
 
 class ChatResponse(BaseModel):
     chat_id: str
+    chat_history: list[dict] | None = None
     text: str
 
 
@@ -58,8 +59,9 @@ async def chat(request: ChatRequest):
                 "score": float(row['score'])
             })
         answer = await generate_answer(request.text, response, request.chat_history)
-
-        return ChatResponse(text=answer, chat_id=request.chat_id)
+        chat_history = request.chat_history.append({"role": "user", "content": request.text})
+        chat_history = chat_history.append({"role": "assistant", "content": answer})
+        return ChatResponse(text=answer, chat_id=request.chat_id, chat_history=chat_history)
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка: {str(e)}")

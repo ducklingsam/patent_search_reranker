@@ -1,5 +1,6 @@
 import pandas as pd
 import lightgbm as lgb
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from .reranker import PatentReranker
 from .metrics import precision_at_k, mrr_at_k, recall_at_k, ndcg_at_k
 from .features import extract_features
@@ -7,7 +8,6 @@ from .rosclient import RosPatentClient
 
 
 def baseline_bm25(query, patents, relevant_set, k=20):
-    """Базовый метод: ранжирование по BM25."""
     df = pd.DataFrame(patents)
     df['score'] = df['bm25']
     ranked = df.sort_values('score', ascending=False)
@@ -21,7 +21,6 @@ def baseline_bm25(query, patents, relevant_set, k=20):
 
 
 def baseline_dense(query, patents, relevant_set, k=20):
-    """Базовый метод: ранжирование по dense similarity."""
     df = pd.DataFrame(patents)
     df['score'] = df['dense_sim']
     ranked = df.sort_values('score', ascending=False)
@@ -34,14 +33,26 @@ def baseline_dense(query, patents, relevant_set, k=20):
     }
 
 
+def fetch_features_for_query(client, df, q):
+    sub = df[df['query'] == q]
+    patents = client.search(q, limit=len(sub))
+    feats = extract_features(q, patents)
+    rows = []
+    for f in feats:
+        pid = f['id']
+        label_series = sub[sub['id'] == pid]['label']
+        label = int(label_series.iloc[0]) if not label_series.empty else 0
+        rows.append({**f, 'label': label, 'query': q})
+    return rows, len(patents)
+
+
 def ablation_study(gold_csv, output_path, feature_sets=None):
-    """Абляционное исследование: оценка вклада каждого признака."""
     if feature_sets is None:
         feature_sets = [
-            ['bm25', 'dense_sim', 'ipc_sim'],  # Полный набор
-            ['bm25', 'dense_sim'],  # Без IPC
-            ['bm25', 'ipc_sim'],  # Без dense
-            ['dense_sim', 'ipc_sim']  # Без BM25
+            ['bm25', 'dense_sim', 'ipc_sim'],
+            ['bm25', 'dense_sim'],
+            ['bm25', 'ipc_sim'],
+            ['dense_sim', 'ipc_sim']
         ]
 
     df = pd.read_csv(gold_csv)
@@ -49,19 +60,16 @@ def ablation_study(gold_csv, output_path, feature_sets=None):
     results = []
 
     for features in feature_sets:
-        # Обучение модели с выбранными признаками
         rows = []
         groups = []
-        for q in df['query'].unique():
-            sub = df[df['query'] == q]
-            patents = client.search(q, limit=len(sub))
-            feats = extract_features(q, patents)
-            for f in feats:
-                pid = f['id']
-                label_series = sub[sub['id'] == pid]['label']
-                label = int(label_series.iloc[0]) if not label_series.empty else 0
-                rows.append({**f, 'label': label, 'query': q})
-            groups.append(len(patents))
+
+        with ThreadPoolExecutor(max_workers=8) as executor:
+            futures = {executor.submit(fetch_features_for_query, client, df, q): q for q in df['query'].unique()}
+            for future in as_completed(futures):
+                query = futures[future]
+                query_rows, group_size = future.result()
+                rows.extend(query_rows)
+                groups.append(group_size)
 
         data = pd.DataFrame(rows)
         X = data[features]
@@ -77,10 +85,10 @@ def ablation_study(gold_csv, output_path, feature_sets=None):
         }
         model = lgb.train(params, train_data, num_boost_round=100)
 
-        # Оценка
         reranker = PatentReranker()
         reranker.model = model
         metrics = []
+
         for q in df['query'].unique():
             sub = df[df['query'] == q]
             relevant = set(sub[sub['label'] == 1]['id'])
@@ -111,7 +119,6 @@ def ablation_study(gold_csv, output_path, feature_sets=None):
 
 
 def hyperparameter_tuning(gold_csv, output_path, param_grid=None):
-    """Поиск оптимальных гиперпараметров для LambdaRank."""
     if param_grid is None:
         param_grid = {
             'learning_rate': [0.01, 0.05, 0.1],
@@ -126,16 +133,13 @@ def hyperparameter_tuning(gold_csv, output_path, param_grid=None):
         for leaves in param_grid['num_leaves']:
             rows = []
             groups = []
-            for q in df['query'].unique():
-                sub = df[df['query'] == q]
-                patents = client.search(q, limit=len(sub))
-                feats = extract_features(q, patents)
-                for f in feats:
-                    pid = f['id']
-                    label_series = sub[sub['id'] == pid]['label']
-                    label = int(label_series.iloc[0]) if not label_series.empty else 0
-                    rows.append({**f, 'label': label, 'query': q})
-                groups.append(len(patents))
+
+            with ThreadPoolExecutor(max_workers=8) as executor:
+                futures = {executor.submit(fetch_features_for_query, client, df, q): q for q in df['query'].unique()}
+                for future in as_completed(futures):
+                    query_rows, group_size = future.result()
+                    rows.extend(query_rows)
+                    groups.append(group_size)
 
             data = pd.DataFrame(rows)
             X = data[['bm25', 'dense_sim', 'ipc_sim']]
@@ -151,10 +155,10 @@ def hyperparameter_tuning(gold_csv, output_path, param_grid=None):
             }
             model = lgb.train(params, train_data, num_boost_round=100)
 
-            # Оценка
             reranker = PatentReranker()
             reranker.model = model
             metrics = []
+
             for q in df['query'].unique():
                 sub = df[df['query'] == q]
                 relevant = set(sub[sub['label'] == 1]['id'])
@@ -186,39 +190,43 @@ def hyperparameter_tuning(gold_csv, output_path, param_grid=None):
 
 
 def compare_methods(manual_csv, reranker_model_path):
-    """Сравнение предложенного метода с базовыми."""
     df = pd.read_csv(manual_csv)
     client = RosPatentClient()
     reranker = PatentReranker(reranker_model_path)
     results = []
 
-    for q in df['query'].unique():
+    def evaluate_query(q):
         sub = df[df['query'] == q]
         relevant = set(sub[sub['label'] == 1]['id'])
         patents = client.search(q, limit=20)
         feats = extract_features(q, patents)
-
-        # Предложенный метод
         preds, _ = reranker.predict(q, top_k=20)
         ranked_ids = preds['id'].tolist()
-        proposed_metrics = {
-            'Method': 'Proposed',
-            'Query': q,
-            'Precision@5': precision_at_k(ranked_ids, relevant, k=5),
-            'MRR@20': mrr_at_k(ranked_ids, relevant, k=20),
-            'Recall@20': recall_at_k(ranked_ids, relevant, k=20),
-            'NDCG@5': ndcg_at_k(ranked_ids, relevant, k=5)
-        }
+        return [
+            {
+                'Method': 'Proposed',
+                'Query': q,
+                'Precision@5': precision_at_k(ranked_ids, relevant, k=5),
+                'MRR@20': mrr_at_k(ranked_ids, relevant, k=20),
+                'Recall@20': recall_at_k(ranked_ids, relevant, k=20),
+                'NDCG@5': ndcg_at_k(ranked_ids, relevant, k=5)
+            },
+            {
+                **baseline_bm25(q, feats, relevant),
+                'Method': 'BM25',
+                'Query': q
+            },
+            {
+                **baseline_dense(q, feats, relevant),
+                'Method': 'Dense',
+                'Query': q
+            }
+        ]
 
-        # Базовые методы
-        bm25_metrics = baseline_bm25(q, feats, relevant)
-        bm25_metrics['Method'] = 'BM25'
-        bm25_metrics['Query'] = q
-        dense_metrics = baseline_dense(q, feats, relevant)
-        dense_metrics['Method'] = 'Dense'
-        dense_metrics['Query'] = q
-
-        results.extend([proposed_metrics, bm25_metrics, dense_metrics])
+    with ThreadPoolExecutor(max_workers=8) as executor:
+        futures = [executor.submit(evaluate_query, q) for q in df['query'].unique()]
+        for f in as_completed(futures):
+            results.extend(f.result())
 
     results_df = pd.DataFrame(results)
     avg_metrics = results_df.groupby('Method')[['Precision@5', 'MRR@20', 'Recall@20', 'NDCG@5']].mean().reset_index()
