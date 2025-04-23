@@ -43,7 +43,7 @@ class PatentReranker:
             'ndcg_eval_at': [5],
             'learning_rate': 0.05,
             'num_leaves': 31,
-            'min_data_in_leaf': 1   # снизили минимальное число данных в листе для небольших групп
+            'min_data_in_leaf': 1
         }
         model = lgb.train(params, train_data, num_boost_round=100)
         model.save_model(output_path)

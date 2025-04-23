@@ -21,12 +21,12 @@ cp .env.example .env
 ## Использование
 ### 1. Дообучение эмбеддингов
 ```bash
-python -m src.main embed --gold data/gold_labels.csv --output models/contrastive-rubert --epochs 3
+python -m src.main embed --gold data/labeled_patents.csv --output models/contrastive-rubert --epochs 3
 ```
 
 ### 2. Обучение ранкера
 ```bash
-python -m src.main train --gold data/gold_labels.csv --output models/patent_reranker.txt
+python -m src.main train --gold data/labeled_patents.csv --output models/patent_reranker.txt
 ```
 
 ### 3. Оценка и абляции
