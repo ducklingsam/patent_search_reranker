@@ -44,7 +44,7 @@ class RosPatentClient:
         for try_ in range(tries):
             try:
                 payload = {
-                    "q": query,
+                    "qn": query,
                     "limit": limit,
                     "offset": offset,
                     "datasets": datasets or ["ru_till_1994","ru_since_1994","cis","dsgn_ru","ap","cn","ch","au","gb","kr",
