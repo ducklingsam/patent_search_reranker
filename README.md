@@ -98,7 +98,7 @@ python -m src.main explain --manual data/manual_qrels.csv --model models/patent_
 - **`manual_qrels_extra.csv`**: Enhanced dataset created during the second stage of development
 
 ## API Classes
-
+The only API Endpoint is `POST /chat`. Accepts `application/json`
 ### ChatRequest
 Represents a user request in the chat system.
 
@@ -128,9 +128,6 @@ Creates a comprehensive response based on the ranked patent results.
 
 ### `chat()`
 Handles the full chat interaction lifecycle, from processing the query to generating responses.
-
-### `root()`
-Entry point for the web application.
 
 ## Project Development Phases
 
