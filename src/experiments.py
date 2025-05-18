@@ -234,5 +234,5 @@ def compare_methods(manual_csv, reranker_model_path):
     print(results_df.to_markdown(index=False))
     print("\nAverage Metrics by Method:")
     print(avg_metrics.to_markdown(index=False))
-    results_df.to_csv('comparison_results.csv', index=False)
+    results_df.to_csv('comparison_results_new.csv', index=False)
     return results_df

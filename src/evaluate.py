@@ -38,5 +38,5 @@ def evaluate_manual(manual_csv: str, reranker_model_path: str):
     print(df_res.to_markdown(index=False))
     print("\nAverage Metrics:")
     print(pd.DataFrame([avg_metrics]).to_markdown(index=False))
-    df_res.to_csv('evaluation_results.csv', index=False)
+    df_res.to_csv('evaluation_results_new.csv', index=False)
     return df_res

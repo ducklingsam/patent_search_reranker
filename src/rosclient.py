@@ -63,26 +63,6 @@ class RosPatentClient:
         resp.raise_for_status()
 
     def get_document(self, patent_id: str, tries: int = 5) -> dict:
-        """
-        Fetches the document details of a given patent from a remote API.
-
-        This method sends a GET request to the API to retrieve the document information
-        for the given patent ID. It retries the request up to the specified number of
-        attempts in case of request errors. If all attempts fail, an exception is
-        raised. The result is returned as a dictionary containing the document details.
-
-        Parameters:
-            patent_id (str): The unique identifier for the patent whose document needs
-                to be fetched.
-            tries (int): The number of retries for the request in case of failure.
-                Defaults to 3.
-
-        Returns:
-            dict: A dictionary containing the details of the requested patent document.
-
-        Raises:
-            Exception: If all retry attempts for the GET request fail.
-        """
         for try_ in range(tries):
             try:
                 resp = self.session.get(f"{self.BASE_URL}/docs/{patent_id}")
@@ -101,10 +81,9 @@ class RosPatentClient:
             try:
                 resp = self.session.post(f"{self.BASE_URL}/search", json=payload)
                 resp.raise_for_status()
-                logger.info(f"Successfully searched for {payload}. Result: {resp.json()}")
+                logger.info(f"Successfully searched for {payload}")
 
                 return resp.json()
             except requests.HTTPError as e:
-                logger.warning(f'Error while searching: {resp.text}. Retrying {try_ + 1}/{tries}')
+                logger.warning(f'Error while searching: {e}. Retrying {try_ + 1}/{tries}')
                 time.sleep(1)
-        resp.raise_for_status()

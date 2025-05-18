@@ -36,7 +36,7 @@ class PatentReranker:
             'objective': 'lambdarank',
             'metric': 'ndcg',
             'ndcg_eval_at': [5],
-            'learning_rate': 0.05,
+            'learning_rate': 0.1,
             'num_leaves': 31,
             'min_data_in_leaf': 1
         }

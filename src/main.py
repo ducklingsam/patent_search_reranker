@@ -15,7 +15,7 @@ def main():
     model_path = 'models/contrastive-rubert/model.safetensors'
 
     if not os.path.isfile(model_path):
-        model_url = 'https://your-link.com/model.safetensors'
+        model_url = 'https://limewire.com/d/gbCI2#mQvObSb6Mz'
         logger.info('No model.safetensors found in models/contrastive-rubert. Downloading it now...')
         download_model(model_url, model_path)
 
@@ -59,8 +59,8 @@ def main():
         with ThreadPoolExecutor(max_workers=3) as executor:
             futures = {
                 executor.submit(compare_methods, args.manual, args.model): 'Method Comparison',
-                executor.submit(ablation_study, args.gold, 'ablation_results.csv'): 'Ablation Study',
-                executor.submit(hyperparameter_tuning, args.gold, 'hyperparam_results.csv'): 'Hyperparameter Tuning'
+                executor.submit(ablation_study, args.gold, 'ablation_results_new.csv'): 'Ablation Study',
+                # executor.submit(hyperparameter_tuning, args.gold, 'hyperparam_results.csv'): 'Hyperparameter Tuning'
             }
 
             for future in as_completed(futures):

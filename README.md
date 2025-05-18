@@ -31,7 +31,6 @@ python -m src.main train --gold data/labeled_patents.csv --output models/patent_
 
 ### 3. Оценка и абляции
 ```bash
-# manual_qrels.csv должен содержать ручную разметку для честного теста
 python -m src.main eval --manual data/manual_qrels.csv --model models/patent_reranker.txt
 ```
 
@@ -56,7 +55,10 @@ python -m src.main explain --manual data/manual_qrels.csv --model  models/patent
 
 
 ## Второй этап
-### Подсчет BaseLine
-```bash
+1. Добавление GPT Preprocessing + Reranker
+2. Генерация большего датасета (новый файл по генерации generate_qrels.py)
 
-```
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+В результате основной файл: manual_qrels_extra.csv 
+3. Переобучение реранкера после results/hyperparam_results.py (с новым файлом + LR 0.1)
+4. Рескоринг модели

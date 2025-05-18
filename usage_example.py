@@ -15,12 +15,9 @@ load_dotenv()
 
 app = FastAPI()
 
-# Порог минимального скорора релевантности
 THRESHOLD = 0.2
-# Максимальное число кандидатов для поиска
 TOP_K = 100
 
-# Инициализация клиентов
 reranker = PatentReranker(model_path="models/patent_reranker.txt")
 client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
 ros_client = RosPatentClient()
@@ -113,17 +110,13 @@ async def chat(request: ChatRequest):
         if request.chat_id is None:
             request.chat_id = str(uuid.uuid4())
 
-        # 1. Препроцессинг запроса
         preprocessed = await preprocess_query(request.text)
 
-        # 2. Расширение запроса
         expansions = await expand_query(preprocessed)
 
-        # 3. Построение комбинированного поиска
         phrases = [preprocessed] + expansions
         combined_q = " OR ".join([f"({p})" for p in phrases])
 
-        # 4. Поиск через RosPatent Raw API без фильтров
         raw = ros_client.search_raw({
             "q": combined_q,
             "limit": TOP_K,
@@ -131,7 +124,6 @@ async def chat(request: ChatRequest):
         })
         patents = raw.get("hits", [])
 
-        # 5. Ранжирование списка патентов
         feats = extract_features(preprocessed, patents)
         df_feats = pd.DataFrame(feats)
         if not df_feats.empty:
@@ -139,7 +131,6 @@ async def chat(request: ChatRequest):
             df_feats['score'] = reranker.model.predict(df_feats[features])
             df_feats = df_feats.sort_values('score', ascending=False)
 
-        # 6. Фолбэк если нет релевантных
         if df_feats.empty or df_feats['score'].iloc[0] < THRESHOLD:
             fallback = (
                 "К сожалению, по вашему запросу патенты не найдены. "
@@ -150,7 +141,6 @@ async def chat(request: ChatRequest):
             history.append({"role": "assistant", "content": fallback})
             return ChatResponse(text=fallback, chat_id=request.chat_id, chat_history=history)
 
-        # 7. Подготовка списка для генерации ответа
         response_list = []
         for _, row in df_feats.iterrows():
             patent = next((p for p in patents if p['id'] == row['id']), {})
@@ -161,7 +151,6 @@ async def chat(request: ChatRequest):
                 "score": float(row['score'])
             })
 
-        # 8. Генерация ответа GPT
         answer = await generate_answer(
             request.text,
             preprocessed,
@@ -170,7 +159,6 @@ async def chat(request: ChatRequest):
             request.chat_history
         )
 
-        # Обновляем историю чата
         history = request.chat_history.copy() if request.chat_history else []
         history.append({"role": "user", "content": request.text})
         history.append({"role": "assistant", "content": answer})

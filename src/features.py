@@ -4,16 +4,15 @@ from sklearn.metrics.pairwise import cosine_similarity
 import os
 
 from .rosclient import RosPatentClient
-from .utils import device
+from .utils import device, download_model
 
 client = RosPatentClient()
 
-# Попытка загрузить дообученную модель, иначе использовать базовую
 _model_path = os.getenv('EMBED_MODEL_PATH', 'models/contrastive-rubert')
 if os.path.isdir(_model_path):
     embed_model = SentenceTransformer(_model_path, device=device)
 else:
-    embed_model = SentenceTransformer('ai-forever/sbert_large_nlu_ru', device=device)
+    download_model('https://limewire.com/d/gbCI2#mQvObSb6Mz', 'models/contrastive-rubert')
 _query_ipc_cache = {}
 
 
