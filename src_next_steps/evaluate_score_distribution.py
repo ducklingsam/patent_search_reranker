@@ -1,6 +1,7 @@
 import argparse
 import pandas as pd
 import matplotlib.pyplot as plt
+from sklearn.metrics import precision_recall_fscore_support
 from src.reranker import PatentReranker
 
 def parse_args():
@@ -16,42 +17,46 @@ def parse_args():
         help="Путь к файлу модели ранкера LightGBM"
     )
     parser.add_argument(
-        "--top_k", type=int, default=100,
-        help="Сколько документов запрашивать у RosPatent (по умолчанию 100)"
+        "--top_k", type=int, default=20,
+        help="Сколько документов запрашивать у RosPatent (по умолчанию 20)"
     )
     return parser.parse_args()
 
 def main():
     args = parse_args()
 
-    # Загрузка Qrels
     qrels = pd.read_csv(args.manual_csv)
 
-    # Инициализация ранкера
     reranker = PatentReranker(args.model_path)
 
     all_scores = []
     all_labels = []
 
     for query in qrels['query'].unique():
-        # Qrels для данного запроса
         df_q = qrels[qrels['query'] == query][['id', 'label']]
-        # Предсказания ранкера
         df_feats, _ = reranker.predict(query, top_k=args.top_k)
 
-        # Сливаем метки (отсутсвующие считаем 0)
         df_merged = df_feats.merge(df_q, on='id', how='left').fillna({'label': 0})
-        # Собираем списки
         all_scores.extend(df_merged['score'].tolist())
         all_labels.extend(df_merged['label'].tolist())
 
-    # Датафрейм для удобства
     df_scores = pd.DataFrame({
         'score': all_scores,
         'label': all_labels
     })
 
-    # Рисуем гистограмму
+    best_thresh = 0.0
+    best_f1 = 0.0
+
+    for t in [x / 100 for x in range(0, 101)]:
+        preds = [1 if s >= t else 0 for s in all_scores]
+        _, _, f1, _ = precision_recall_fscore_support(all_labels, preds, average='binary')
+        if f1 > best_f1:
+            best_f1 = f1
+            best_thresh = t
+
+    print(f"Лучший threshold: {best_thresh:.2f} с F1: {best_f1:.4f}") # Result: Лучший threshold: 0.66 с F1: 0.6667
+
     plt.hist(
         [df_scores[df_scores['label'] == 1]['score'],
          df_scores[df_scores['label'] == 0]['score']],
@@ -64,7 +69,7 @@ def main():
     plt.title('Распределение скореров для релевантных и нерелевантных документов')
     plt.legend()
     plt.tight_layout()
-    plt.show()
+    plt.savefig('results_new/threshold_f1.png', dpi=300)
 
 if __name__ == "__main__":
     main()

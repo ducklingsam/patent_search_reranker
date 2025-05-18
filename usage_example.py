@@ -15,7 +15,7 @@ load_dotenv()
 
 app = FastAPI()
 
-THRESHOLD = 0.2
+THRESHOLD = 0.6
 TOP_K = 100
 
 reranker = PatentReranker(model_path="models/patent_reranker_new.txt")

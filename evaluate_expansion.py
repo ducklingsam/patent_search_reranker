@@ -1,15 +1,14 @@
 import argparse
 import asyncio
-import json
 import pandas as pd
 from src.reranker import PatentReranker
 from src.rosclient import RosPatentClient
 from src.features import extract_features
 from src.metrics import ndcg_at_k
-from usage_example import preprocess_query, expand_query  # async functions
+from usage_example import preprocess_query, expand_query
 
 TOP_K_SEARCH = 100
-TOP_K_RANK = 100  # для recall@100
+TOP_K_RANK = 100
 
 
 def recall_at_k(ranked_ids, relevant, k=100):
