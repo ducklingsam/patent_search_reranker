@@ -96,13 +96,15 @@ class RosPatentClient:
 
 
     def search_raw(self, payload: dict, tries: int = 5):
+        payload = {k: v for k, v in payload.items() if v is not None and v != []}
         for try_ in range(tries):
             try:
                 resp = self.session.post(f"{self.BASE_URL}/search", json=payload)
                 resp.raise_for_status()
-                logger.info(f"Successfully searched for {payload}")
-                data = resp.json()
-                return data
-            except Exception as e:
-                logger.warning(f'Error while searching: {e}. Retrying {try_ + 1}/{tries} in 1 sec')
+                logger.info(f"Successfully searched for {payload}. Result: {resp.json()}")
+
+                return resp.json()
+            except requests.HTTPError as e:
+                logger.warning(f'Error while searching: {resp.text}. Retrying {try_ + 1}/{tries}')
                 time.sleep(1)
+        resp.raise_for_status()

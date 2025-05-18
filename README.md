@@ -53,3 +53,10 @@ python -m src.main explain --manual data/manual_qrels.csv --model  models/patent
 ## Результаты
 Метрики из экспериментов в директории results
 """
+
+
+## Второй этап
+### Подсчет BaseLine
+```bash
+
+```
