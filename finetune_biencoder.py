@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 import os
 import argparse
 import pandas as pd
@@ -24,23 +23,14 @@ def prepare_model(model_name="DeepPavlov/rubert-base-cased"):
     return model
 
 def extract_text_from_doc(doc: dict) -> str:
-    """
-    Берёт из ответа API текст абстракта:
-    - если doc == {"ru": ..., "en": ...}, вернёт doc["ru"] или, если пусто, doc["en"];
-    - если doc содержит ключ "abstract", то аналогично в doc["abstract"];
-    - иначе конкатенирует все строковые значения в doc.
-    """
-    # случай, когда get_document() сразу вернул {'ru':..., 'en':...}
     if set(doc.keys()) >= {"ru", "en"}:
         return doc.get("ru", "") or doc.get("en", "") or ""
-    # случай, когда в корне есть "abstract"
     if "abstract" in doc:
         abstr = doc["abstract"]
         if isinstance(abstr, dict):
             return abstr.get("ru", "") or abstr.get("en", "") or ""
         elif isinstance(abstr, str):
             return abstr
-    # fallback — склеим все текстовые поля
     parts = [v for v in doc.values() if isinstance(v, str)]
     return " ".join(parts)
 
@@ -132,7 +122,6 @@ def main():
 
     os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
-    # сплитим train/dev 80/20
     df_all   = pd.read_csv(args.train_qrels)
     df_dev   = df_all.sample(frac=0.2, random_state=42).reset_index(drop=True)
     df_train = df_all.drop(df_dev.index).reset_index(drop=True)
@@ -141,7 +130,6 @@ def main():
     model  = prepare_model()
     model.to(device)
 
-    # === СТАДИЯ 1: MNRLoss + IR-evaluator ===
     train_examples = load_positive_pairs(df_train, client)
     print(f"Stage1: {len(train_examples)} positive pairs")
     loader1 = DataLoader(train_examples, batch_size=args.batch_size,
@@ -157,7 +145,6 @@ def main():
         show_progress_bar=True
     )
 
-    # === СТАДИЯ 2: hard negatives + TripletLoss ===
     print("Mining hard negatives…")
     triplets = mine_hard_triplets(model, df_train, client, args.top_k)
     print(f"Stage2: {len(triplets)} triplets")

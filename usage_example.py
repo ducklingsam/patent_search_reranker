@@ -18,7 +18,7 @@ app = FastAPI()
 THRESHOLD = 0.2
 TOP_K = 100
 
-reranker = PatentReranker(model_path="models/patent_reranker.txt")
+reranker = PatentReranker(model_path="models/patent_reranker_new.txt")
 client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
 ros_client = RosPatentClient()
 
