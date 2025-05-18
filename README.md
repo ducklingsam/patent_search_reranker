@@ -1,64 +1,177 @@
-# Patent Search & Re-ranker
+# LegalTech Bot 
+## Thesis Software Project (HSE)
+Developed by Bozhenov Oleg
 
-## Описание
-Система поиска и ранжирования патентов Роспатента с дообученными эмбеддингами,
-использующим LightGBM LambdaRank и мультиметрическими признаками:
-- BM25 (from API)
-- Dense similarity (дообученная RuBERT-модель)
-- IPC similarity (автоматически inferred)
 
-## Установка
-```bash
+## Overview
+
+The Patent Search Reranker system is a specialized tool for enhancing patent search results through a sophisticated reranking mechanism. It integrates with the RosPatent API to fetch initial search results and then applies machine learning techniques to improve the relevance of returned patents.
+
+## Project Description
+
+This system provides patent search and re-ranking capabilities for the Russian Patent Office (Rospatent) with fine-tuned embeddings, using LightGBM LambdaRank and multiple metric features:
+- BM25 (retrieved from API)
+- Dense similarity (fine-tuned RuBERT model)
+- IPC similarity (automatically inferred)
+
+## Architecture
+
+The system consists of the following main components:
+
+### Core Components
+
+1. **PatentReranker (`reranker.py`)**
+   - Implements a LightGBM LambdaRank model for reranking patent search results
+   - Provides training and prediction functionality
+   - Uses multiple features to assess document relevance
+
+2. **RosPatentClient (`rosclient.py`)**
+   - Handles communication with the RosPatent API (v0.2)
+   - Provides methods for patent search and document retrieval
+   - Includes robust error handling with retry logic
+
+3. **Feature Extraction (`features.py`)**
+   - Extracts and computes similarity features between queries and patents
+   - Implements various similarity metrics:
+     - BM25 scores
+     - Dense semantic similarity using embedded representations
+     - IPC (International Patent Classification) similarity
+
+4. **User Interface (`usage_example.py`)**
+   - Implements a chat-based interface for patent search
+   - Provides query preprocessing and expansion
+   - Generates comprehensive answers based on retrieved patents
+
+## Installation
+
+```shell script
 git clone <repo_url>
 cd patent_search_re_reranker
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env
-# заполнить в .env ключи
+# Fill in API keys in the .env file
 ```
 
-## Использование
-### 1. Дообучение эмбеддингов
-```bash
+## Usage
+
+### 1. Fine-tuning Embeddings
+```shell script
 python -m src.main embed --gold data/labeled_patents.csv --output models/contrastive-rubert --epochs 3
 ```
 
-### 2. Обучение ранкера
-```bash
+### 2. Training the Reranker
+```shell script
 python -m src.main train --gold data/labeled_patents.csv --output models/patent_reranker.txt
 ```
 
-### 3. Оценка и абляции
-```bash
+### 3. Evaluation and Ablation Studies
+```shell script
 python -m src.main eval --manual data/manual_qrels.csv --model models/patent_reranker.txt
 ```
 
-### 4. Эксперименты
-```bash
+### 4. Experiments
+```shell script
 python -m src.main experiment --gold data/gold_labels.csv --manual data/manual_qrels.csv --model models/patent_reranker.txt
 ```
 
-### 5. SHAP LIME
-```bash
-python -m src.main explain --manual data/manual_qrels.csv --model  models/patent_reranker.txt --out results
+### 5. Explainability (SHAP and LIME)
+```shell script
+python -m src.main explain --manual data/manual_qrels.csv --model models/patent_reranker.txt --out results
 ```
 
-## Структура данных
-- `data/gold_labels.csv`: LLM-сгенерированные positive/negative для тренировки
-- `data/manual_qrels.csv`: вручную размеченная выборка для финального теста
-- `data/labeled_patents.csv`: полуручная выборка для переобучения. Способ генерации в файле `generating_labels.py`
+## Key Features
 
-## Результаты
-Метрики из экспериментов в директории results
-"""
+- **Query Preprocessing**: Cleans and prepares user queries for optimal search performance
+- **Query Expansion**: Enhances queries to improve recall
+- **Multi-Feature Ranking**: Combines multiple relevance signals for better precision
+- **Conversational Interface**: Supports chat-based interactions with history tracking
+- **Pretrained Models**: Utilizes sentence transformer models for semantic understanding
+- **Model Explainability**: Provides SHAP and LIME visualizations for model interpretability
 
+## Data Structure
 
-## Второй этап
-1. Добавление GPT Preprocessing + Reranker
-2. Генерация большего датасета (новый файл по генерации generate_qrels.py)
+- **`data/gold_labels.csv`**: LLM-generated positive/negative examples for training
+- **`data/manual_qrels.csv`**: Manually labeled dataset for final testing
+- **`data/labeled_patents.csv`**: Semi-manual dataset for retraining. Generation method is in `generating_labels.py`
+- **`manual_qrels_extra.csv`**: Enhanced dataset created during the second stage of development
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
-В результате основной файл: manual_qrels_extra.csv 
-3. Переобучение реранкера после results/hyperparam_results.py (с новым файлом + LR 0.1)
-4. Рескоринг модели
+## API Classes
+
+### ChatRequest
+Represents a user request in the chat system.
+
+**Attributes:**
+- `chat_id`: Unique identifier for the chat session
+- `text`: User query text
+- `chat_history`: Previous conversation history
+
+### ChatResponse
+Represents the system's response to a user query.
+
+**Attributes:**
+- `chat_id`: Matching chat session identifier
+- `chat_history`: Updated conversation history
+- `text`: Response text generated by the system
+
+## Main Functions
+
+### `preprocess_query()`
+Cleans and standardizes user queries for optimal search performance.
+
+### `expand_query()`
+Enhances the original query with additional relevant terms to improve search recall.
+
+### `generate_answer()`
+Creates a comprehensive response based on the ranked patent results.
+
+### `chat()`
+Handles the full chat interaction lifecycle, from processing the query to generating responses.
+
+### `root()`
+Entry point for the web application.
+
+## Project Development Phases
+
+### First Phase
+- Initial implementation of the reranker with three main features
+- Development of basic training and evaluation pipelines
+
+### Second Phase
+1. Addition of GPT Preprocessing + Reranker
+2. Generation of a larger dataset (using `generate_qrels.py`)
+3. Retraining the reranker with hyperparameter optimization (learning rate 0.1)
+4. Model rescoring and evaluation
+
+## Results
+
+Evaluation metrics from experiments are stored in the `results` directory. Performance analysis includes:
+- Comparison of different feature combinations
+- Ablation studies to determine feature importance
+- Hyperparameter optimization results
+- Visualization of model explanations (SHAP and LIME)
+
+## Technical Specifications
+
+- **Similarity Metrics**:
+  - BM25: Statistical relevance scoring
+  - Dense Similarity: Cosine similarity between query and document embeddings
+  - IPC Similarity: Jaccard similarity between inferred and actual patent classifications
+
+- **Configuration Parameters**:
+  - `THRESHOLD`: Cutoff threshold for relevance
+  - `TOP_K`: Number of top results to consider
+
+## Getting Started
+
+1. Ensure the RosPatent API key is set in the environment variables
+2. Make sure all dependencies are installed
+3. Run the application using the entry point in `usage_example.py`
+4. Start interacting with the system through the chat interface
+
+## Best Practices
+
+- Use specific and detailed patent queries for better results
+- Review multiple top patents to get a comprehensive understanding
+- Consider both the original query and expanded versions for broader coverage

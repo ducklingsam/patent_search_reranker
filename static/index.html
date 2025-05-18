@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Patent Search Assistant</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <style>
+    .scrollbar-thin::-webkit-scrollbar {
+      width: 6px;
+    }
+    .scrollbar-thin::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .scrollbar-thin::-webkit-scrollbar-thumb {
+      background-color: rgba(100, 100, 100, 0.4);
+      border-radius: 3px;
+    }
+
+    @keyframes blink {
+      0%, 20% { opacity: 0.2; }
+      20%, 60% { opacity: 1; }
+      60%, 100% { opacity: 0.2; }
+    }
+    .typing {
+      display: inline-flex;
+      align-items: center;
+    }
+    .typing-dot {
+      width: 8px;
+      height: 8px;
+      margin-right: 4px;
+      border-radius: 50%;
+      background-color: rgba(100, 100, 100, 0.6);
+      animation: blink 1.4s infinite both;
+    }
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+  </style>
+</head>
+<body class="bg-gray-50 flex items-center justify-center min-h-screen p-4">
+  <div class="bg-white shadow-xl rounded-2xl w-full max-w-2xl flex flex-col overflow-hidden">
+    <!-- Header -->
+    <header class="bg-gradient-to-r from-blue-500 to-indigo-600 p-6">
+      <h1 class="text-2xl font-semibold text-white">LegalTech Bot</h1>
+      <p class="text-gray-200 mt-1">Thesis Software Project</p>
+    </header>
+
+    <main class="flex-1 p-6 overflow-y-auto scrollbar-thin" id="chat-container">
+    </main>
+
+    <footer class="p-4 bg-gray-100">
+      <form id="chat-form" class="flex space-x-3">
+        <input
+          type="text"
+          id="user-input"
+          placeholder="Введите запрос..."
+          class="flex-1 px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-400"
+          required
+        />
+        <button
+          type="submit"
+          class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-full flex-shrink-0 transition"
+        >
+          Отправить
+        </button>
+      </form>
+    </footer>
+  </div>
+
+  <script>
+    const form = document.getElementById('chat-form');
+    const input = document.getElementById('user-input');
+    const chatContainer = document.getElementById('chat-container');
+    let chatId = null;
+    let history = [];
+
+    function appendMessage(role, text) {
+      const wrapper = document.createElement('div');
+      wrapper.className = role === 'user' ? 'text-right mb-4' : 'text-left mb-4';
+
+      const bubble = document.createElement('div');
+      bubble.className = role === 'user'
+        ? 'inline-block bg-blue-500 text-white px-4 py-2 rounded-2xl max-w-xs break-words'
+        : 'inline-block bg-gray-200 text-gray-800 px-4 py-2 rounded-2xl max-w-xs break-words';
+
+      if (role === 'assistant') {
+        bubble.innerHTML = marked.parse(text);
+      } else {
+        bubble.textContent = text;
+      }
+
+      wrapper.appendChild(bubble);
+      chatContainer.appendChild(wrapper);
+      chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
+
+    function appendTypingIndicator() {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'text-left mb-4';
+
+      const bubble = document.createElement('div');
+      bubble.className = 'inline-flex bg-gray-200 text-gray-800 px-4 py-2 rounded-2xl max-w-xs';
+
+      const typing = document.createElement('div');
+      typing.className = 'typing';
+      for (let i = 0; i < 3; i++) {
+        const dot = document.createElement('span');
+        dot.className = 'typing-dot';
+        typing.appendChild(dot);
+      }
+      bubble.appendChild(typing);
+      wrapper.appendChild(bubble);
+      chatContainer.appendChild(wrapper);
+      chatContainer.scrollTop = chatContainer.scrollHeight;
+      return wrapper;
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const text = input.value.trim();
+      if (!text) return;
+
+      appendMessage('user', text);
+      history.push({ role: 'user', content: text });
+      input.value = '';
+
+      const loader = appendTypingIndicator();
+
+      try {
+        const response = await fetch('/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ chat_id: chatId, text, chat_history: history })
+        });
+        const data = await response.json();
+        chatId = data.chat_id;
+
+        loader.remove();
+
+        appendMessage('assistant', data.text);
+        history = data.chat_history;
+      } catch (err) {
+        loader.remove();
+        appendMessage('assistant', 'Ошибка соединения. Пожалуйста, попробуйте снова.');
+      }
+    });
+  </script>
+</body>
+</html>

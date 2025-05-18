@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.responses import HTMLResponse
 from fastapi.exceptions import HTTPException
 from pydantic import BaseModel
 import uuid
@@ -10,6 +11,8 @@ from src.features import extract_features
 from openai import OpenAI
 import os
 from dotenv import load_dotenv
+from fastapi.staticfiles import StaticFiles
+
 
 load_dotenv()
 
@@ -167,6 +170,14 @@ async def chat(request: ChatRequest):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка: {str(e)}")
+
+
+app.mount("/", StaticFiles(directory="static", html=True), name="static")
+
+@app.get("/", response_class=HTMLResponse)
+async def root():
+    with open("static/index.html", encoding="utf-8") as f:
+        return f.read()
 
 if __name__ == "__main__":
     import uvicorn
